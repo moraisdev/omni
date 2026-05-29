@@ -89,6 +89,7 @@ export class ClickUpPlugin extends BaseChannelPlugin {
         channelIds,
         selfUserId,
         intervalMs: pollIntervalMs,
+        disableSelfFilter: process.env.CLICKUP_DISABLE_SELF_FILTER === 'true',
         onMessage: async (channelId, msg) => {
           await this.handleMessageReceived({
             instanceId,

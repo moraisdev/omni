@@ -348,6 +348,11 @@ type InstanceConnectionOptionsInput = {
   gupshupAuthToken?: string | null;
   gupshupEventId?: string | null;
   webhookVerifyToken?: string | null;
+  clickupApiToken?: string | null;
+  clickupWorkspaceId?: string | null;
+  clickupChannelIds?: string | null;
+  clickupPollIntervalMs?: number | null;
+  clickupWebhookSecret?: string | null;
 };
 
 function applyChannelSpecificConnectionOptions(
@@ -370,6 +375,14 @@ function applyChannelSpecificConnectionOptions(
     if (input.gupshupAuthToken) options.gupshupAuthToken = input.gupshupAuthToken;
     if (input.gupshupEventId) options.gupshupEventId = input.gupshupEventId;
     if (input.webhookVerifyToken) options.webhookVerifyToken = input.webhookVerifyToken;
+  }
+
+  if (input.channel === 'clickup') {
+    if (input.clickupApiToken) options.apiToken = input.clickupApiToken;
+    if (input.clickupWorkspaceId) options.workspaceId = input.clickupWorkspaceId;
+    if (input.clickupChannelIds) options.channelIds = input.clickupChannelIds;
+    if (input.clickupPollIntervalMs) options.pollIntervalMs = input.clickupPollIntervalMs;
+    if (input.clickupWebhookSecret) options.webhookSecret = input.clickupWebhookSecret;
   }
 }
 
@@ -851,6 +864,11 @@ const connectInstanceSchema = z.object({
   slackSigningSecret: z.string().optional().describe('Slack signing secret'),
   forceNewQr: z.boolean().optional().describe('Force new QR code for WhatsApp (re-authentication)'),
   gupshupCallbackUrl: z.string().optional().describe('Gupshup webhook callback URL (persisted for reconnection)'),
+  clickupApiToken: z.string().optional().describe('ClickUp personal API token (pk_...)'),
+  clickupWorkspaceId: z.string().optional().describe('ClickUp workspace (team) id'),
+  clickupChannelIds: z.string().optional().describe('ClickUp chat channel ids to poll (comma-separated)'),
+  clickupPollIntervalMs: z.number().optional().describe('ClickUp poll interval in ms (default 5000)'),
+  clickupWebhookSecret: z.string().optional().describe('Optional ClickUp webhook shared secret'),
   whatsapp: z
     .object({
       syncFullHistory: z.boolean().optional().describe('Sync full message history on connect (default: true)'),
@@ -895,6 +913,11 @@ instancesRoutes.post(
       gupshupAuthToken: instance.gupshupAuthToken,
       gupshupEventId: instance.gupshupEventId,
       webhookVerifyToken: instance.webhookVerifyToken,
+      clickupApiToken: body.clickupApiToken,
+      clickupWorkspaceId: body.clickupWorkspaceId,
+      clickupChannelIds: body.clickupChannelIds,
+      clickupPollIntervalMs: body.clickupPollIntervalMs,
+      clickupWebhookSecret: body.clickupWebhookSecret,
     });
 
     // Trigger connection via channel plugin

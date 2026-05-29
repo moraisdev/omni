@@ -17,6 +17,8 @@ export interface ClickUpPollerOptions {
   /** The bot's own ClickUp user id — its messages are skipped. */
   selfUserId: string;
   intervalMs: number;
+  /** When true, do not skip the bot's own messages (test/debug only). */
+  disableSelfFilter?: boolean;
   onMessage: (channelId: string, message: ClickUpMessage) => Promise<void>;
   onError?: (error: unknown) => void;
 }
@@ -66,7 +68,7 @@ export class ClickUpPoller {
       // On the first poll we only record ids (prime) — don't replay backlog.
       if (firstPoll) continue;
       // Skip the bot's own messages to avoid self-reply loops.
-      if (msg.userId === this.opts.selfUserId) continue;
+      if (!this.opts.disableSelfFilter && msg.userId === this.opts.selfUserId) continue;
 
       await this.opts.onMessage(channelId, msg);
     }
