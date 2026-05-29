@@ -93,6 +93,7 @@ export type Channel =
   | 'telegram'
   | 'a2a'
   | 'gupshup'
+  | 'clickup'
   | 'internal';
 
 // Paginated response helper

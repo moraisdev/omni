@@ -229,6 +229,22 @@ export function createApp(
     return plugin.handleWebhook(c.req.raw);
   });
 
+  // ClickUp Chat webhook (fed by a ClickUp Chat "Message is posted" Automation)
+  app.post('/api/v2/channels/clickup/:instanceId/webhook', async (c) => {
+    const channelRegistry = c.get('channelRegistry');
+
+    if (!channelRegistry) {
+      return c.json({ error: { code: 'NO_REGISTRY', message: 'Channel registry not available' } }, 503);
+    }
+
+    const plugin = channelRegistry.get('clickup');
+    if (!plugin?.handleWebhook) {
+      return c.json({ error: { code: 'PLUGIN_NOT_FOUND', message: 'ClickUp plugin not loaded' } }, 503);
+    }
+
+    return plugin.handleWebhook(c.req.raw);
+  });
+
   // Protected routes
   const protectedApp = new Hono<{ Variables: AppVariables }>();
   protectedApp.use('*', authMiddleware);
