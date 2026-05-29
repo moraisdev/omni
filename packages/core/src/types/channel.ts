@@ -11,6 +11,7 @@ export const CHANNEL_TYPES = [
   'a2a',
   'gupshup',
   'clickup',
+  'clipei',
   'internal',
 ] as const;
 export type ChannelType = (typeof CHANNEL_TYPES)[number];

@@ -94,6 +94,7 @@ export type Channel =
   | 'a2a'
   | 'gupshup'
   | 'clickup'
+  | 'clipei'
   | 'internal';
 
 // Paginated response helper
