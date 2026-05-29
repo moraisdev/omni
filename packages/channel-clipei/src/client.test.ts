@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { buildReplyBody } from './client';
+import { buildHandoffBody, buildReplyBody } from './client';
 
 describe('buildReplyBody', () => {
   it('builds the responder payload', () => {
@@ -7,5 +7,11 @@ describe('buildReplyBody', () => {
   });
   it('coerces numeric chatId string', () => {
     expect(buildReplyBody('7', 'oi').conversa_id).toBe(7);
+  });
+});
+
+describe('buildHandoffBody', () => {
+  it('builds the handoff payload', () => {
+    expect(buildHandoffBody('42', 'reembolso')).toEqual({ conversa_id: 42, motivo: 'reembolso' });
   });
 });

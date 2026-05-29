@@ -5,6 +5,7 @@ import type { ChannelType, ContentType } from '@omni/core/types';
 
 import { CLIPEI_CAPABILITIES } from './capabilities';
 import { ClipeiClient } from './client';
+import { parseHandoff } from './handoff';
 import { handleClipeiWebhook } from './handlers/webhook';
 import { type ClipeiConfig, ClipeiError, ClipeiErrorCode, type ClipeiInstanceState } from './types';
 
@@ -66,6 +67,19 @@ export class ClipeiPlugin extends BaseChannelPlugin {
       return { success: false, error: 'Clipei channel only supports text', retryable: false, timestamp: Date.now() };
     }
     try {
+      const ho = parseHandoff(text);
+      if (ho.isHandoff) {
+        const { messageId } = await state.client.handoff(message.to, ho.reason);
+        await this.emitMessageSent({
+          instanceId,
+          externalId: messageId,
+          chatId: message.to,
+          to: message.to,
+          content: { type: 'text' as ContentType, text },
+          senderAgentId: message.metadata?.senderAgentId as string | undefined,
+        });
+        return { success: true, messageId, timestamp: Date.now() };
+      }
       const { messageId } = await state.client.reply(message.to, text);
       await this.emitMessageSent({
         instanceId,
