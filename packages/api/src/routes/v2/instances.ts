@@ -353,6 +353,9 @@ type InstanceConnectionOptionsInput = {
   clickupChannelIds?: string | null;
   clickupPollIntervalMs?: number | null;
   clickupWebhookSecret?: string | null;
+  clipeiBaseUrl?: string | null;
+  clipeiResponseSecret?: string | null;
+  clipeiWebhookSecret?: string | null;
 };
 
 function applyChannelSpecificConnectionOptions(
@@ -383,6 +386,12 @@ function applyChannelSpecificConnectionOptions(
     if (input.clickupChannelIds) options.channelIds = input.clickupChannelIds;
     if (input.clickupPollIntervalMs) options.pollIntervalMs = input.clickupPollIntervalMs;
     if (input.clickupWebhookSecret) options.webhookSecret = input.clickupWebhookSecret;
+  }
+
+  if (input.channel === 'clipei') {
+    if (input.clipeiBaseUrl) options.baseUrl = input.clipeiBaseUrl;
+    if (input.clipeiResponseSecret) options.responseSecret = input.clipeiResponseSecret;
+    if (input.clipeiWebhookSecret) options.webhookSecret = input.clipeiWebhookSecret;
   }
 }
 
@@ -869,6 +878,9 @@ const connectInstanceSchema = z.object({
   clickupChannelIds: z.string().optional().describe('ClickUp chat channel ids to poll (comma-separated)'),
   clickupPollIntervalMs: z.number().optional().describe('ClickUp poll interval in ms (default 5000)'),
   clickupWebhookSecret: z.string().optional().describe('Optional ClickUp webhook shared secret'),
+  clipeiBaseUrl: z.string().optional().describe('Clipei API base URL'),
+  clipeiResponseSecret: z.string().optional().describe('Clipei response signing secret'),
+  clipeiWebhookSecret: z.string().optional().describe('Clipei webhook shared secret'),
   whatsapp: z
     .object({
       syncFullHistory: z.boolean().optional().describe('Sync full message history on connect (default: true)'),
@@ -918,6 +930,9 @@ instancesRoutes.post(
       clickupChannelIds: body.clickupChannelIds,
       clickupPollIntervalMs: body.clickupPollIntervalMs,
       clickupWebhookSecret: body.clickupWebhookSecret,
+      clipeiBaseUrl: body.clipeiBaseUrl,
+      clipeiResponseSecret: body.clipeiResponseSecret,
+      clipeiWebhookSecret: body.clipeiWebhookSecret,
     });
 
     // Trigger connection via channel plugin
