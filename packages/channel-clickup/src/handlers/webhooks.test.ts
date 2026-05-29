@@ -6,7 +6,7 @@ describe('parseClickUpWebhook', () => {
     const result = parseClickUpWebhook({
       message: {
         id: 'msg_123',
-        text_content: 'olá kami',
+        text_content: 'olá otto',
         channel_id: 'chan_9',
         user: { id: 42 },
       },
@@ -15,7 +15,7 @@ describe('parseClickUpWebhook', () => {
       externalId: 'msg_123',
       chatId: 'chan_9',
       from: '42',
-      text: 'olá kami',
+      text: 'olá otto',
       replyToId: undefined,
     });
   });
