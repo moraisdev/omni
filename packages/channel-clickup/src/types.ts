@@ -4,6 +4,7 @@
 
 import type { DedupeCache } from '@omni/channel-sdk';
 import type { ClickUpClient } from './client';
+import type { ClickUpPoller } from './handlers/poller';
 
 export interface ClickUpConfig {
   /** ClickUp personal API token (pk_...) or OAuth access token */
@@ -12,12 +13,17 @@ export interface ClickUpConfig {
   workspaceId: string;
   /** Optional shared secret used to verify incoming automation webhooks */
   webhookSecret?: string;
+  /** Chat channel ids to poll for inbound messages (polling mode). */
+  channelIds?: string[];
+  /** Polling interval in ms (default 5000). */
+  pollIntervalMs?: number;
 }
 
 export interface ClickUpInstanceState {
   client: ClickUpClient;
   config: ClickUpConfig;
   dedupeCache: DedupeCache;
+  poller?: ClickUpPoller;
 }
 
 export enum ClickUpErrorCode {

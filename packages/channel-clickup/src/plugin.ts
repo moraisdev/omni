@@ -15,8 +15,22 @@ import type { ChannelType, ContentType } from '@omni/core/types';
 
 import { CLICKUP_CAPABILITIES } from './capabilities';
 import { ClickUpClient } from './client';
+import { ClickUpPoller } from './handlers/poller';
 import { handleClickUpWebhook } from './handlers/webhooks';
 import { type ClickUpConfig, ClickUpError, ClickUpErrorCode, type ClickUpInstanceState } from './types';
+
+const DEFAULT_POLL_INTERVAL_MS = 5000;
+
+function parseChannelIds(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((v) => String(v)).filter(Boolean);
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
 
 export class ClickUpPlugin extends BaseChannelPlugin {
   readonly id: ChannelType = 'clickup';
@@ -33,6 +47,7 @@ export class ClickUpPlugin extends BaseChannelPlugin {
 
   protected override async onDestroy(): Promise<void> {
     for (const [, state] of this.clickupInstances) {
+      state.poller?.stop();
       state.dedupeCache.dispose();
     }
     this.clickupInstances.clear();
@@ -45,11 +60,13 @@ export class ClickUpPlugin extends BaseChannelPlugin {
     const apiToken = (creds.apiToken ?? opts.apiToken) as string | undefined;
     const workspaceId = (creds.workspaceId ?? opts.workspaceId) as string | undefined;
     const webhookSecret = (creds.webhookSecret ?? opts.webhookSecret) as string | undefined;
+    const channelIds = parseChannelIds(creds.channelIds ?? opts.channelIds);
+    const pollIntervalMs = Number(creds.pollIntervalMs ?? opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS);
 
     if (!apiToken) throw new ClickUpError(ClickUpErrorCode.INVALID_CONFIG, 'apiToken is required');
     if (!workspaceId) throw new ClickUpError(ClickUpErrorCode.INVALID_CONFIG, 'workspaceId is required');
 
-    this.logger.info('Connecting ClickUp instance', { instanceId, workspaceId });
+    this.logger.info('Connecting ClickUp instance', { instanceId, workspaceId, channelIds, pollIntervalMs });
 
     const client = new ClickUpClient(apiToken, workspaceId);
     const valid = await client.validateCredentials();
@@ -60,10 +77,38 @@ export class ClickUpPlugin extends BaseChannelPlugin {
       );
     }
 
-    const clickupConfig: ClickUpConfig = { apiToken, workspaceId, webhookSecret };
+    const clickupConfig: ClickUpConfig = { apiToken, workspaceId, webhookSecret, channelIds, pollIntervalMs };
     const dedupeCache = createInboundDedupeCache();
+    const state: ClickUpInstanceState = { client, config: clickupConfig, dedupeCache };
 
-    this.clickupInstances.set(instanceId, { client, config: clickupConfig, dedupeCache });
+    // Start polling for inbound messages (ClickUp Chat has no usable realtime webhook).
+    if (channelIds.length > 0) {
+      const selfUserId = (await client.getCurrentUserId()) ?? '';
+      const poller = new ClickUpPoller({
+        client,
+        channelIds,
+        selfUserId,
+        intervalMs: pollIntervalMs,
+        onMessage: async (channelId, msg) => {
+          await this.handleMessageReceived({
+            instanceId,
+            externalId: msg.id,
+            chatId: channelId,
+            from: msg.userId,
+            text: msg.content,
+            replyToId: msg.parentMessageId,
+          });
+        },
+        onError: (error) => {
+          this.logger.warn('ClickUp poll error', { instanceId, error: String(error) });
+        },
+      });
+      poller.start();
+      state.poller = poller;
+      this.logger.info('ClickUp poller started', { instanceId, channelIds, selfUserId });
+    }
+
+    this.clickupInstances.set(instanceId, state);
 
     await this.updateInstanceStatus(instanceId, config, {
       state: 'connected',
@@ -80,6 +125,7 @@ export class ClickUpPlugin extends BaseChannelPlugin {
   async disconnect(instanceId: string): Promise<void> {
     const state = this.clickupInstances.get(instanceId);
     if (state) {
+      state.poller?.stop();
       state.dedupeCache.dispose();
       this.clickupInstances.delete(instanceId);
     }
