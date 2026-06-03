@@ -5,8 +5,9 @@ import type { ChannelType, ContentType } from '@omni/core/types';
 
 import { CLIPEI_CAPABILITIES } from './capabilities';
 import { ClipeiClient } from './client';
-import { parseHandoff } from './handoff';
+import { parseEncerrar } from './encerrar';
 import { handleClipeiWebhook } from './handlers/webhook';
+import { parseHandoff } from './handoff';
 import { type ClipeiConfig, ClipeiError, ClipeiErrorCode, type ClipeiInstanceState } from './types';
 
 export class ClipeiPlugin extends BaseChannelPlugin {
@@ -80,6 +81,24 @@ export class ClipeiPlugin extends BaseChannelPlugin {
           chatId: message.to,
           to: message.to,
           content: { type: 'text' as ContentType, text: ho.cleanedText || '' },
+          senderAgentId: message.metadata?.senderAgentId as string | undefined,
+        });
+        return { success: true, messageId, timestamp: Date.now() };
+      }
+      const enc = parseEncerrar(text);
+      if (enc.isEncerrar) {
+        // Cliente sinalizou que pode encerrar: manda a despedida (se houver) e AGENDA o fecho na Clipei
+        // (não fecha na hora — respeita a janela de silêncio). O marcador nunca vaza pro cliente.
+        if (enc.cleanedText) {
+          await state.client.reply(message.to, enc.cleanedText);
+        }
+        const { messageId } = await state.client.encerrar(message.to);
+        await this.emitMessageSent({
+          instanceId,
+          externalId: messageId,
+          chatId: message.to,
+          to: message.to,
+          content: { type: 'text' as ContentType, text: enc.cleanedText || '' },
           senderAgentId: message.metadata?.senderAgentId as string | undefined,
         });
         return { success: true, messageId, timestamp: Date.now() };

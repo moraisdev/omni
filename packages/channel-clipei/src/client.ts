@@ -12,6 +12,10 @@ export function buildHandoffBody(conversaId: string, motivo: string): { conversa
   return { conversa_id: Number(conversaId), motivo };
 }
 
+export function buildEncerrarBody(conversaId: string): { conversa_id: number } {
+  return { conversa_id: Number(conversaId) };
+}
+
 export class ClipeiClient {
   constructor(
     private readonly baseUrl: string,
@@ -43,7 +47,27 @@ export class ClipeiClient {
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      throw new ClipeiError(ClipeiErrorCode.SEND_FAILED, `Clipei handoff failed (${res.status}): ${body.slice(0, 200)}`);
+      throw new ClipeiError(
+        ClipeiErrorCode.SEND_FAILED,
+        `Clipei handoff failed (${res.status}): ${body.slice(0, 200)}`,
+      );
+    }
+    const data = (await res.json().catch(() => ({}))) as { mensagem?: { id?: number | string } };
+    return { messageId: data.mensagem?.id !== undefined ? String(data.mensagem.id) : crypto.randomUUID() };
+  }
+
+  async encerrar(conversaId: string): Promise<ClipeiReplyResult> {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, '')}/api/otto/encerrar`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.responseSecret}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildEncerrarBody(conversaId)),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new ClipeiError(
+        ClipeiErrorCode.SEND_FAILED,
+        `Clipei encerrar failed (${res.status}): ${body.slice(0, 200)}`,
+      );
     }
     const data = (await res.json().catch(() => ({}))) as { mensagem?: { id?: number | string } };
     return { messageId: data.mensagem?.id !== undefined ? String(data.mensagem.id) : crypto.randomUUID() };
