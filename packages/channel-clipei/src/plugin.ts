@@ -69,13 +69,17 @@ export class ClipeiPlugin extends BaseChannelPlugin {
     try {
       const ho = parseHandoff(text);
       if (ho.isHandoff) {
+        // Se o agente escreveu algo útil antes do marcador, manda ao cliente já SEM o marcador.
+        if (ho.cleanedText) {
+          await state.client.reply(message.to, ho.cleanedText);
+        }
         const { messageId } = await state.client.handoff(message.to, ho.reason);
         await this.emitMessageSent({
           instanceId,
           externalId: messageId,
           chatId: message.to,
           to: message.to,
-          content: { type: 'text' as ContentType, text },
+          content: { type: 'text' as ContentType, text: ho.cleanedText || '' },
           senderAgentId: message.metadata?.senderAgentId as string | undefined,
         });
         return { success: true, messageId, timestamp: Date.now() };
