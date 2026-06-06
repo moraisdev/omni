@@ -73,6 +73,7 @@ export async function handleClipeiWebhook(
     chatId: msg.chatId,
     from: msg.from,
     text: msg.text,
+    senderName: msg.senderName,
   });
   return new Response('OK', { status: 200 });
 }
