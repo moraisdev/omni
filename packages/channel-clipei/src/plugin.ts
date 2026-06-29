@@ -136,16 +136,28 @@ export class ClipeiPlugin extends BaseChannelPlugin {
     from: string;
     text: string;
     senderName?: string;
+    mediaUrl?: string;
+    mediaType?: string;
+    mimeType?: string;
   }): Promise<void> {
     // O nome do cliente vem do webhook (usuario.nome), mas o evento não carrega nome.
     // Injetamos uma tag interna no início do texto pro agente usar o nome e inferir o gênero.
-    const text = params.senderName ? `[Cliente: ${params.senderName}]\n${params.text}` : params.text;
+    const base = params.text || (params.mediaUrl ? '[imagem]' : '');
+    const text = params.senderName ? `[Cliente: ${params.senderName}]\n${base}` : base;
+    const content = params.mediaUrl
+      ? {
+          type: (params.mediaType ?? 'image') as ContentType,
+          text,
+          mediaUrl: params.mediaUrl,
+          mimeType: params.mimeType,
+        }
+      : { type: 'text' as ContentType, text };
     await this.emitMessageReceived({
       instanceId: params.instanceId,
       externalId: params.externalId,
       chatId: params.chatId,
       from: params.from,
-      content: { type: 'text' as ContentType, text },
+      content,
     });
   }
 }
