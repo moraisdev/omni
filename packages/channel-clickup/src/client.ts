@@ -20,6 +20,11 @@ export interface ClickUpMessage {
   parentMessageId?: string;
 }
 
+export interface ClickUpChannelInfo {
+  id: string;
+  type: string;
+}
+
 export class ClickUpClient {
   constructor(
     private readonly apiToken: string,
@@ -59,6 +64,36 @@ export class ClickUpClient {
     } catch {
       return false;
     }
+  }
+
+  /** List chat channels in the workspace (groups + DMs). */
+  async listChannels(limit = 100): Promise<ClickUpChannelInfo[]> {
+    const res = await fetch(`${API_BASE}/workspaces/${this.workspaceId}/chat/channels?limit=${limit}`, {
+      method: 'GET',
+      headers: this.headers(),
+    });
+
+    if (res.status === 429) {
+      throw new ClickUpError(ClickUpErrorCode.RATE_LIMITED, 'ClickUp rate limit hit');
+    }
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new ClickUpError(
+        ClickUpErrorCode.SEND_FAILED,
+        `ClickUp listChannels failed (${res.status}): ${body.slice(0, 300)}`,
+      );
+    }
+
+    const raw = (await res.json().catch(() => ({}))) as { data?: unknown[] };
+    const out: ClickUpChannelInfo[] = [];
+    for (const row of raw.data ?? []) {
+      if (typeof row !== 'object' || row === null) continue;
+      const r = row as Record<string, unknown>;
+      const id = r.id !== undefined ? String(r.id) : undefined;
+      if (!id) continue;
+      out.push({ id, type: r.type !== undefined ? String(r.type) : '' });
+    }
+    return out;
   }
 
   /** Post a top-level text message to a chat channel. */
