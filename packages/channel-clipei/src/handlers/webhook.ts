@@ -16,6 +16,7 @@ const Schema = z
       texto: z.string(),
       tipo: z.string().optional(),
       midia_url: z.string().nullable().optional(),
+      midia_mime: z.string().nullable().optional(),
     }),
   })
   .passthrough();
@@ -55,7 +56,11 @@ export function parseClipeiWebhook(raw: unknown): ParsedClipeiMessage | null {
     text: d.mensagem.texto,
     senderName: d.usuario.nome,
     ...(ehMidia
-      ? { mediaUrl: midiaUrl, mediaType: tipo, mimeType: MIME_BY_TIPO[tipo] ?? 'application/octet-stream' }
+      ? {
+          mediaUrl: midiaUrl,
+          mediaType: tipo,
+          mimeType: d.mensagem.midia_mime?.trim() || MIME_BY_TIPO[tipo] || 'application/octet-stream',
+        }
       : {}),
   };
 }

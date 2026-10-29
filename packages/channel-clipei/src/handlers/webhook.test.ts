@@ -44,6 +44,28 @@ describe('parseClipeiWebhook', () => {
     expect(r?.mediaUrl).toBe('https://cdn.x/p.png');
     expect(r?.mediaType).toBe('imagem');
   });
+  it('usa o mime real enviado pela Clipei em vez de inferir do tipo', () => {
+    const r = parseClipeiWebhook({
+      conversa_id: 8187,
+      usuario: { tipo: 'clipador', id: 89201 },
+      mensagem: {
+        id: 145846,
+        texto: '',
+        tipo: 'imagem',
+        midia_url: 'https://cdn.x/tiny.svg',
+        midia_mime: 'image/svg+xml',
+      },
+    });
+    expect(r?.mimeType).toBe('image/svg+xml');
+  });
+  it('cai no mime por tipo quando a Clipei nao manda midia_mime', () => {
+    const r = parseClipeiWebhook({
+      conversa_id: 42,
+      usuario: { tipo: 'clipador', id: 9 },
+      mensagem: { id: 101, texto: '', tipo: 'imagem', midia_url: 'https://cdn.x/y.jpg', midia_mime: null },
+    });
+    expect(r?.mimeType).toBe('image/jpeg');
+  });
   it('descarta mensagem sem texto E sem midia', () => {
     expect(
       parseClipeiWebhook({
